@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2e9a3b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Redline">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-512.png">
+<title>Redline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&family=JetBrains+Mono:wght@700;800&display=swap">
+<style>
+:root{
+  --band:#3fb44a;--band-2:#2e9a3b;--bank:#7a4b1c;
+  --field:#3d8cae;--field-2:#5aa9c9;--lane-line:rgba(255,255,255,.14);
+  --panel:#eef1ff;--panel-ink:#15171f;--panel-edge:#2b2f3a;
+  --ink:#ffffff;
+  --card:#ffffff;--card-ink:#1a1d26;--card-soft:#5b6272;--card-line:#dfe3ec;
+  --accent:#ff7a1a;--accent-ink:#ffffff;
+  --bad:#e5322d;--good:#1f9d55;--calm:#2d8f86;
+  --c1:#ffd21f;--c2:#e8322f;--c3:#8f5cff;--c4:#22c9a0;
+  --rw:clamp(74px,8.5vw,128px);
+  --font-display:"Fredoka","Nunito",system-ui,sans-serif;
+  --font-body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-num:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+[data-scene="circuit"]{
+  --band:#1b1e25;--band-2:#14161b;--bank:#d8282b;
+  --field:#3a3e47;--field-2:#474c57;--lane-line:rgba(255,255,255,.55);
+  --panel:#0b0c10;--panel-ink:#ffc21a;--panel-edge:#000;
+  --accent:#e10600;--accent-ink:#fff;
+  --c1:#ffc21a;--c2:#2f7bff;--c3:#00c2b8;--c4:#ff5ca8;
+}
+[data-scene="space"]{
+  --band:#0e0a2e;--band-2:#0a0722;--bank:#6c4bff;
+  --field:#130d3d;--field-2:#1d1656;--lane-line:rgba(160,150,255,.16);
+  --panel:#1a1450;--panel-ink:#7ef9ff;--panel-edge:#6c4bff;
+  --accent:#7ef9ff;--accent-ink:#0b0826;
+  --c1:#ffe14d;--c2:#ff5c8a;--c3:#9dff4d;--c4:#c48bff;
+}
+[data-scene="calm"]{
+  --band:#274347;--band-2:#21393c;--bank:#3d6a6e;
+  --field:#2e5357;--field-2:#386166;--lane-line:rgba(255,255,255,.08);
+  --panel:#e6eee9;--panel-ink:#1d3032;--panel-edge:#3d6a6e;
+  --accent:#6cc4b0;--accent-ink:#0f2426;--bad:#d9786e;
+  --c1:#f2d27a;--c2:#e6a58b;--c3:#b9a8e3;--c4:#8fc9e0;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--field);color:var(--ink);font:16px/1.45 var(--font-body)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+.app{height:100%;min-height:600px;display:flex;flex-direction:column;position:relative;overflow:hidden;background:var(--field)}
+
+/* HUD band */
+.hud{background:linear-gradient(180deg,var(--band),var(--band-2));border-bottom:10px solid var(--bank);padding-block:14px 12px;padding-inline:clamp(16px,2.5vw,32px);display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:14px 20px;align-items:center;position:relative;z-index:3}
+[data-scene="circuit"] .hud{border-bottom:0}
+[data-scene="circuit"] .hud::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:repeating-linear-gradient(90deg,#d8282b 0 28px,#f4f4f4 28px 56px)}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.tool{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 14px;border-radius:12px;border:0;background:rgba(0,0,0,.28);color:var(--ink);font:700 15px var(--font-body)}
+.tool:hover{background:rgba(0,0,0,.42)}
+.tool svg{width:20px;height:20px;flex:none}
+.tool[aria-pressed="false"] .on{display:none}
+.tool[aria-pressed="true"] .off{display:none}
+
+.clock-box{background:var(--panel);color:var(--panel-ink);border:5px solid var(--panel-edge);border-radius:18px;padding:6px clamp(18px,2.5vw,34px) 8px;text-align:center;min-width:min(440px,100%);box-shadow:0 6px 0 rgba(0,0,0,.22)}
+.clock{font:800 clamp(56px,7.4vw,112px)/1 var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.03em;white-space:nowrap}
+.clock-cap{font:800 13px var(--font-body);letter-spacing:.16em;text-transform:uppercase;opacity:.7;margin-top:2px;min-height:18px}
+.clock-box.over{border-color:var(--bad)}
+.clock-box.over .clock,.clock-box.over .clock-cap{color:var(--bad);opacity:1}
+.clock-box.over .clock{animation:throb 1s ease-in-out infinite}
+.clock-box.paused .clock{opacity:.4}
+.clock-box.brk{border-color:var(--calm)}
+[data-scene="calm"] .clock-box.over .clock,.clock-box.brk.over .clock{animation:none}
+@keyframes throb{50%{opacity:.55}}
+
+.ctrls{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.btn{height:48px;padding:0 18px;border-radius:12px;border:0;background:rgba(0,0,0,.28);color:var(--ink);font:700 16px var(--font-body);display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn:hover{background:rgba(0,0,0,.42)}
+.btn-go{background:var(--accent);color:var(--accent-ink);font:600 19px var(--font-display);padding:0 24px}
+.btn-go:hover{background:var(--accent);filter:brightness(1.08)}
+.btn kbd{font:700 11px var(--font-num);opacity:.65;border:1px solid currentColor;border-radius:4px;padding:0 4px}
+
+/* NOW strip */
+.now{position:relative;z-index:2;padding:16px clamp(16px,2.5vw,32px) 2px;display:flex;align-items:center;gap:14px}
+.now-k{font:800 13px var(--font-body);letter-spacing:.2em;text-transform:uppercase;background:var(--accent);color:var(--accent-ink);padding:5px 10px;border-radius:8px;flex:none}
+.now-t{font:600 clamp(28px,3.6vw,52px)/1.08 var(--font-display);color:var(--ink);text-shadow:0 2px 0 rgba(0,0,0,.18);overflow-wrap:anywhere;flex:1;min-width:0;border:0;background:none;padding:0;text-align:left}
+.now-t:hover{text-decoration:underline dotted 2px;text-underline-offset:6px}
+.now-edit{flex:1;min-width:0;font:600 clamp(28px,3.6vw,52px)/1.08 var(--font-display);background:rgba(0,0,0,.2);border:0;border-radius:10px;padding:2px 10px;color:var(--ink)}
+
+/* race field */
+.field{flex:1;min-height:300px;position:relative;display:flex;flex-direction:column;padding:28px 0 14px}
+[data-scene="space"] .field{background-image:radial-gradient(1.5px 1.5px at 20px 30px,#fff 50%,transparent 51%),radial-gradient(1px 1px at 120px 80px,#cfc8ff 50%,transparent 51%),radial-gradient(1.5px 1.5px at 200px 150px,#fff 50%,transparent 51%),radial-gradient(1px 1px at 60px 190px,#9fe8ff 50%,transparent 51%);background-size:240px 220px}
+[data-scene="space"] .field.go{animation:drift 14s linear infinite}
+@keyframes drift{to{background-position:-240px 0}}
+.lane{flex:1;position:relative;margin-inline:clamp(16px,2.5vw,32px);border-bottom:2px solid var(--lane-line)}
+.lane:last-child{border-bottom:0}
+[data-scene="circuit"] .lane{border-bottom:3px dashed var(--lane-line)}
+[data-scene="circuit"] .lane:last-child{border-bottom:0}
+.wave{position:absolute;left:0;right:0;bottom:-2px;height:16px;background:radial-gradient(ellipse 40px 9px at 40px 16px,var(--field-2) 98%,transparent 100%) 0 0/80px 16px repeat-x;pointer-events:none}
+[data-scene="circuit"] .wave,[data-scene="space"] .wave{display:none}
+.field.go .wave{animation:wave 2.4s linear infinite}
+[data-scene="calm"] .field.go .wave{animation-duration:7s}
+@keyframes wave{to{background-position:-80px 0}}
+.finish{position:absolute;top:28px;bottom:14px;right:clamp(16px,2.5vw,32px);width:16px;background:repeating-conic-gradient(#fff 0 25%,#111 0 50%) 0 0/16px 16px;border-radius:2px;opacity:.95}
+.racer{position:absolute;bottom:10%;left:calc((100% - var(--rw)) * var(--p,0));width:var(--rw);color:var(--c);transition:left .45s linear;z-index:1}
+.racer svg{display:block;width:100%;height:auto;overflow:visible}
+.racer .bob{display:block}
+.field.go .racer .bob{animation:bob 1.6s ease-in-out infinite}
+[data-scene="circuit"] .field.go .racer .bob{animation:rumble .18s linear infinite}
+[data-scene="calm"] .field.go .racer .bob{animation-duration:4s}
+.lane:nth-of-type(2) .bob{animation-delay:-.4s!important}.lane:nth-of-type(3) .bob{animation-delay:-.9s!important}.lane:nth-of-type(4) .bob{animation-delay:-1.2s!important}
+@keyframes bob{50%{transform:translateY(-5px) rotate(-2deg)}}
+@keyframes rumble{50%{transform:translateY(1px)}}
+.tag{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-4px);font:800 13px var(--font-body);letter-spacing:.04em;background:rgba(0,0,0,.45);color:#fff;padding:2px 9px;border-radius:99px;white-space:nowrap}
+.racer.me .tag{background:var(--accent);color:var(--accent-ink);font-size:14px}
+.racer.me svg{filter:drop-shadow(0 0 10px rgba(255,255,255,.6))}
+.place-badge{position:absolute;left:clamp(16px,2.5vw,32px);top:0;z-index:2;font:700 18px var(--font-display);background:rgba(0,0,0,.35);color:#fff;padding:3px 12px;border-radius:10px}
+.flame{transform-origin:100% 50%}
+.field.go .flame{animation:flick .12s linear infinite alternate}
+@keyframes flick{to{transform:scaleX(.7)}}
+
+/* overlay cards */
+.stage{position:absolute;inset:0;display:grid;place-items:center;padding:16px;padding-top:180px;z-index:4;pointer-events:none}
+.card{pointer-events:auto;background:var(--card);color:var(--card-ink);border-radius:22px;padding:clamp(20px,3vw,32px);width:min(620px,100%);box-shadow:0 18px 60px rgba(0,0,0,.35),0 6px 0 rgba(0,0,0,.15);display:flex;flex-direction:column;gap:18px}
+.card h2{font:600 clamp(24px,2.6vw,32px)/1.15 var(--font-display);margin:0;text-wrap:balance}
+.eyebrow{font:800 12px var(--font-body);letter-spacing:.18em;text-transform:uppercase;color:var(--card-soft)}
+.task-in{width:100%;font:600 clamp(22px,2.4vw,30px)/1.2 var(--font-display);padding:14px 16px;border-radius:14px;border:2px solid var(--card-line);background:#f6f7fb;color:var(--card-ink)}
+.task-in:focus{outline:none;border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:42px;padding:0 16px;border-radius:99px;border:2px solid var(--card-line);background:#fff;color:var(--card-ink);font:800 15px var(--font-body)}
+.chip[aria-pressed="true"]{background:var(--card-ink);color:#fff;border-color:var(--card-ink)}
+.chip-in{width:96px;height:42px;border-radius:99px;border:2px solid var(--card-line);padding:0 14px;font:800 15px var(--font-body);color:var(--card-ink);background:#fff}
+.hint{font-size:14px;color:var(--card-soft);margin:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cbtn{height:48px;padding:0 18px;border-radius:12px;border:2px solid var(--card-line);background:#fff;color:var(--card-ink);font:800 16px var(--font-body)}
+.cbtn:hover{border-color:var(--card-ink)}
+.cbtn-go{background:var(--accent);border-color:transparent;color:var(--accent-ink);font:600 20px var(--font-display);padding:0 26px;height:54px}
+.cbtn-go:hover{border-color:transparent;filter:brightness(1.06)}
+.cbtn-link{border:0;background:none;color:var(--card-soft);text-decoration:underline;padding:0 4px;height:auto;font-weight:700}
+.big-place{font:700 clamp(72px,10vw,120px)/.9 var(--font-display);color:var(--accent)}
+.big-place.p1{color:#e5a500}
+.res-line{font:700 19px/1.4 var(--font-body);margin:0}
+.order{display:flex;gap:8px;flex-wrap:wrap}
+.order span{font:800 13px var(--font-body);padding:5px 10px;border-radius:8px;background:#f1f3f8;border-left:5px solid var(--c)}
+.order span.me{background:#fff4d6}
+.move{font:600 clamp(24px,2.8vw,34px)/1.2 var(--font-display);margin:0;text-wrap:balance}
+.card.brk{border-top:8px solid var(--calm)}
+
+/* drawers */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--card);color:var(--card-ink);z-index:10;box-shadow:-20px 0 60px rgba(0,0,0,.3);transform:translateX(105%);transition:transform .3s ease,visibility .3s;display:flex;flex-direction:column;visibility:hidden}
+.drawer.open{transform:none;visibility:visible}
+.drawer-h{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--card-line)}
+.drawer-h h2{font:600 24px var(--font-display);margin:0}
+.drawer-b{padding:18px 20px 30px;overflow:auto;display:flex;flex-direction:column;gap:18px}
+.x{width:40px;height:40px;border-radius:10px;border:0;background:#f1f3f8;font:800 18px var(--font-body);color:var(--card-ink)}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tile{background:#f4f6fa;border-radius:12px;padding:10px 12px}
+.tile b{display:block;font:800 22px var(--font-num);font-variant-numeric:tabular-nums}
+.tile small{font:800 11px var(--font-body);letter-spacing:.12em;text-transform:uppercase;color:var(--card-soft)}
+.day{margin-bottom:14px}
+.day h3{font:800 12px var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:var(--card-soft);margin:0 0 4px}
+.entry{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--card-line)}
+.entry .tm{font:700 12px var(--font-num);color:var(--card-soft)}
+.entry .tk{font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.entry .tk small{display:block;font-weight:500;color:var(--card-soft);font-size:13px}
+.entry .d{font:800 14px var(--font-num);text-align:right;font-variant-numeric:tabular-nums}
+.entry .d.over{color:var(--bad)}
+.pill{display:inline-block;font:800 11px var(--font-body);letter-spacing:.06em;padding:1px 7px;border-radius:99px;background:#eef0f5;color:var(--card-soft);margin-left:6px;vertical-align:1px}
+.pill.win{background:#ffd84d;color:#3a2a00}
+.pill.brk{background:#d8f1ec;color:#1d5e57}
+.scenes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.scene{border:3px solid var(--card-line);border-radius:14px;padding:0;overflow:hidden;background:#fff;text-align:left;color:var(--card-ink)}
+.scene[aria-pressed="true"]{border-color:var(--card-ink)}
+.scene i{display:block;height:54px}
+.scene span{display:block;padding:8px 10px;font-weight:800}
+.scene small{display:block;font-weight:500;color:var(--card-soft)}
+.set{display:flex;flex-direction:column;gap:10px}
+.check{display:flex;align-items:center;gap:10px;font-weight:700}
+.check input{width:20px;height:20px;accent-color:var(--card-ink)}
+.csv{width:100%;min-height:110px;font:12px var(--font-num);border:1px solid var(--card-line);border-radius:10px;padding:8px}
+
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translate(-50%,160%);visibility:hidden;background:#15171f;color:#fff;padding:12px 22px;border-radius:14px;font:700 18px var(--font-display);z-index:20;transition:transform .35s cubic-bezier(.2,.9,.3,1.25),visibility .35s;max-width:calc(100% - 32px);text-align:center}
+.toast.show{transform:translate(-50%,0);visibility:visible}
+.toast.good{background:var(--good)}.toast.bad{background:var(--bad)}.toast.calm{background:var(--calm)}
+
+@media (max-width:980px){
+  .hud{grid-template-columns:minmax(0,1fr)}
+  .clock-box{order:-1;justify-self:center}
+  .tools,.ctrls{justify-content:center}
+  .stage{padding-top:300px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body style="margin:0">
+
+
+<div class="app" id="app" data-scene="river">
+  <header class="hud">
+    <div class="tools">
+      <button class="tool" id="t-log" aria-label="Open time log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Log</button>
+      <button class="tool" id="t-set" aria-label="Open scene settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>Scene</button>
+      <button class="tool" id="t-sound" aria-pressed="true" aria-label="Sound"><svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg></button>
+    </div>
+    <div class="clock-box" id="clock-box">
+      <div class="clock" id="clock">25:00</div>
+      <div class="clock-cap" id="clock-cap">Ready</div>
+    </div>
+    <div class="ctrls" id="ctrls"></div>
+  </header>
+
+  <div class="now" id="now" hidden>
+    <span class="now-k">Now</span>
+    <button class="now-t" id="now-t" title="Click to rename"></button>
+    <input class="now-edit" id="now-edit" hidden maxlength="120" aria-label="Rename task">
+  </div>
+
+  <div class="field" id="field"></div>
+
+  <div class="stage" id="stage">
+    <form class="card" id="c-setup" autocomplete="off">
+      <div>
+        <span class="eyebrow">One thing. Right now.</span>
+        <h2>What are you doing?</h2>
+      </div>
+      <input class="task-in" id="task-in" maxlength="120" placeholder="e.g. Reply to the client email" aria-label="Task">
+      <div class="chips" id="dur">
+        <button type="button" class="chip" data-min="10">10</button>
+        <button type="button" class="chip" data-min="15">15</button>
+        <button type="button" class="chip" data-min="25">25</button>
+        <button type="button" class="chip" data-min="45">45</button>
+        <button type="button" class="chip" data-min="60">60 min</button>
+        <button type="button" class="chip" data-min="0">Stopwatch</button>
+        <input class="chip-in" id="dur-in" type="number" min="1" max="600" placeholder="min" aria-label="Custom minutes">
+      </div>
+      <p class="hint" id="dur-hint"></p>
+      <div class="row"><button class="cbtn cbtn-go" type="submit">Start the race</button><button class="cbtn" type="button" id="log-it">Just log it</button><span class="hint" id="log-it-hint"></span></div>
+    </form>
+
+    <div class="card" id="c-result" hidden>
+      <div class="row" style="align-items:flex-end;gap:18px">
+        <div class="big-place" id="r-place">P1</div>
+        <div><span class="eyebrow" id="r-eye">Finished</span><div class="order" id="r-order" style="margin-top:6px"></div></div>
+      </div>
+      <p class="res-line" id="r-line"></p>
+      <div>
+        <span class="eyebrow">Take a break?</span>
+        <div class="row" style="margin-top:8px" id="r-breaks"></div>
+      </div>
+      <div class="row">
+        <button class="cbtn cbtn-go" id="r-next">Next task</button>
+        <button class="cbtn" id="r-again">Same task again</button>
+        <button class="cbtn cbtn-link" id="r-drop">Don't log this one</button>
+      </div>
+    </div>
+
+    <div class="card brk" id="c-break" hidden>
+      <span class="eyebrow">Break · get up and do this</span>
+      <p class="move" id="b-move"></p>
+      <div class="row">
+        <button class="cbtn" id="b-another">Another idea</button>
+        <button class="cbtn" id="b-ext">+2 min</button>
+        <button class="cbtn cbtn-go" id="b-end">Back to it</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<aside class="drawer" id="d-log" aria-label="Time log">
+  <div class="drawer-h"><h2>Time log</h2><button class="x" data-close aria-label="Close">✕</button></div>
+  <div class="drawer-b">
+    <div class="tiles" id="tiles"></div>
+    <div class="row">
+      <button class="cbtn" id="l-csv">Copy as CSV</button>
+      <button class="cbtn cbtn-link" id="l-clear">Clear log</button>
+      <span id="l-confirm" hidden class="row">Delete everything? <button class="cbtn" id="l-yes" style="color:var(--bad)">Delete</button><button class="cbtn" id="l-no">Keep</button></span>
+    </div>
+    <textarea class="csv" id="csv" hidden readonly aria-label="CSV"></textarea>
+    <div id="log-list"></div>
+  </div>
+</aside>
+
+<aside class="drawer" id="d-set" aria-label="Scene settings">
+  <div class="drawer-h"><h2>Scene</h2><button class="x" data-close aria-label="Close">✕</button></div>
+  <div class="drawer-b">
+    <div class="scenes" id="scenes"></div>
+    <div class="set">
+      <span class="eyebrow">Rivals</span>
+      <div class="chips" id="diff">
+        <button type="button" class="chip" data-diff="chill">Chill</button>
+        <button type="button" class="chip" data-diff="normal">Normal</button>
+        <button type="button" class="chip" data-diff="hard">Hard</button>
+      </div>
+      <p class="hint" id="diff-hint"></p>
+    </div>
+    <div class="set">
+      <span class="eyebrow">Feel</span>
+      <label class="check"><input type="checkbox" id="s-count"> 3-2-1 countdown before the start</label>
+      <label class="check"><input type="checkbox" id="s-toast"> Tell me when someone overtakes</label>
+    </div>
+    <p class="hint">Saved in this browser only.</p>
+  </div>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const KEY = 'redline.v2', MIN = 60000, LAP = 25 * MIN;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const DUCK = '<svg viewBox="0 0 120 92" aria-hidden="true"><path d="M12 54 Q6 34 20 38 Q30 44 36 46 Q54 40 82 46 Q106 50 102 68 Q98 84 60 84 Q22 84 12 54Z" fill="currentColor" stroke="#1b1b1b" stroke-width="3.5" stroke-linejoin="round"/><path d="M40 58 Q58 50 74 61 Q58 70 42 64Z" fill="rgba(0,0,0,.15)"/><circle cx="84" cy="30" r="19" fill="currentColor" stroke="#1b1b1b" stroke-width="3.5"/><path d="M100 26 L118 31 L101 38 Z" fill="#ff8a1f" stroke="#1b1b1b" stroke-width="3" stroke-linejoin="round"/><circle cx="89" cy="24" r="4.2" fill="#1b1b1b"/><circle cx="90.3" cy="22.7" r="1.4" fill="#fff"/></svg>';
+const CAR = '<svg viewBox="0 0 120 52" aria-hidden="true"><rect x="16" y="1" width="22" height="11" rx="3" fill="#0b0b0f"/><rect x="16" y="40" width="22" height="11" rx="3" fill="#0b0b0f"/><rect x="78" y="3" width="19" height="10" rx="3" fill="#0b0b0f"/><rect x="78" y="39" width="19" height="10" rx="3" fill="#0b0b0f"/><path d="M8 18h13l9-4h45l28 8h11v8h-11l-28 8H30l-9-4H8z" fill="currentColor" stroke="#0b0b0f" stroke-width="2"/><rect x="1" y="9" width="9" height="34" rx="2" fill="currentColor" stroke="#0b0b0f" stroke-width="2"/><rect x="110" y="8" width="8" height="36" rx="2" fill="currentColor" stroke="#0b0b0f" stroke-width="2"/><ellipse cx="56" cy="26" rx="11" ry="6" fill="rgba(0,0,0,.6)"/></svg>';
+const ROCKET = '<svg viewBox="0 0 124 60" aria-hidden="true"><path class="flame" d="M22 30 L0 20 L8 30 L0 40Z" fill="#ffb21f"/><path d="M30 18 L18 4 H42 L54 18Z M30 42 L18 56 H42 L54 42Z" fill="currentColor" stroke="#0b0826" stroke-width="3" stroke-linejoin="round"/><path d="M22 17 H80 Q106 19 120 30 Q106 41 80 43 H22Z" fill="currentColor" stroke="#0b0826" stroke-width="3" stroke-linejoin="round"/><circle cx="84" cy="30" r="7.5" fill="#c8f7ff" stroke="#0b0826" stroke-width="3"/></svg>';
+
+const SCENES = {
+  river:{ name:'Duck pond', note:'Bright and bobbing', svg:DUCK, rivals:['Puddles','Quackers','Admiral'], pv:'linear-gradient(#3fb44a 0 34%,#7a4b1c 34% 42%,#3d8cae 42%)' },
+  circuit:{ name:'Grand prix', note:'Loud and fast', svg:CAR, rivals:['Vex','Metronome','Lazlo'], pv:'linear-gradient(#1b1e25 0 34%,#d8282b 34% 42%,#3a3e47 42%)' },
+  space:{ name:'Rocket run', note:'Deep space neon', svg:ROCKET, rivals:['Nova','Orbit','Comet'], pv:'linear-gradient(#0e0a2e 0 34%,#6c4bff 34% 42%,#130d3d 42%)' },
+  calm:{ name:'Quiet lake', note:'Low stimulation, slow motion', svg:DUCK, rivals:['Willow','Fern','Moss'], pv:'linear-gradient(#274347 0 34%,#3d6a6e 34% 42%,#2e5357 42%)' },
+};
+const PACE = { chill:[1.0,1.15,1.35], normal:[0.85,1.0,1.18], hard:[0.72,0.88,1.0] };
+const MOVES = [
+  'Fill a glass of water and drink it standing up.',
+  'Walk to the room furthest from your desk and back.',
+  'Ten slow squats. Count them out loud.',
+  'Put five things back where they belong.',
+  'Stand at a window and find three things that move.',
+  'Roll your shoulders ten times back, ten times forward.',
+  'Walk the stairs once, up and down.',
+  'Arms overhead. Hold it for five slow breaths.',
+  'Clear one surface. Just one.',
+  'Step outside and take five breaths of outside air.',
+  'Empty or load the dishwasher for two minutes.',
+  'Shake out your hands and feet like a wet dog.',
+  'Make a hot drink and watch the kettle, not your phone.',
+  'Water a plant, or look closely at one.',
+  'Lie on the floor for one minute. Let it hold you.',
+];
+
+const uid = () => Math.random().toString(36).slice(2, 10);
+const now = () => Date.now();
+const pad = n => String(n).padStart(2, '0');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+function fmt(ms){ const s = Math.floor(Math.abs(ms) / 1000), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return h ? `${h}:${pad(m)}:${pad(x)}` : `${pad(m)}:${pad(x)}`; }
+const fmtUp = ms => fmt(Math.ceil(ms / 1000) * 1000);
+function dur(ms){ const m = Math.round(ms / MIN); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${pad(m % 60)}m`; }
+const hhmm = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const dayKey = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+
+/* state */
+function defaults(){
+  return { settings:{ scene:'river', sound:true, count:true, toasts:true, diff:'normal' }, draft:{ task:'', min:25 }, run:null, result:null, log:[] };
+}
+function load(){
+  const def = defaults(); let d = null;
+  try { d = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  if (!d){
+    try {
+      const old = JSON.parse(localStorage.getItem('redline.v1') || 'null');
+      if (old && Array.isArray(old.log)) def.log = old.log.filter(l => !l.example).map(l => ({ id:l.id || uid(), type:l.type === 'pit' ? 'break' : 'task', task:l.task, start:l.start, plannedMs:l.plannedMs || 0, actualMs:l.actualMs || 0, place:l.place ?? null, status:l.status === 'stopped' ? 'stopped' : 'done' }));
+    } catch (e) {}
+    return def;
+  }
+  return { ...def, ...d, settings:{ ...def.settings, ...(d.settings || {}) }, draft:{ ...def.draft, ...(d.draft || {}) }, log:Array.isArray(d.log) ? d.log : [] };
+}
+let S = load();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+/* sound */
+let AC = null;
+function ac(){ if (!S.settings.sound) return null; try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) { AC = null; } return AC; }
+function tone(f, d = .15, type = 'square', v = .06, when = 0){
+  const a = ac(); if (!a) return;
+  const t = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + d + .03);
+}
+function sweep(f1, f2, d, v = .045){
+  const a = ac(); if (!a) return;
+  const t = a.currentTime, o = a.createOscillator(), g = a.createGain();
+  o.type = 'triangle'; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(f2, t + d);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(v, t + .03); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + d + .03);
+}
+const sfx = {
+  count:() => tone(440, .18, 'square', .06), go:() => tone(880, .45, 'square', .08),
+  pass:() => sweep(300, 1200, .3), passed:() => sweep(900, 220, .4),
+  flag:() => [0, .2, .4].forEach(w => tone(520, .15, 'sawtooth', .05, w)),
+  win:() => [523, 659, 784, 1047].forEach((f, i) => tone(f, .24, 'square', .06, i * .13)),
+  done:() => [392, 523].forEach((f, i) => tone(f, .25, 'triangle', .07, i * .16)),
+  chime:() => { tone(528, .7, 'sine', .08); tone(792, .9, 'sine', .05, .22); },
+};
+
+let toastT = 0;
+function toast(msg, cls = ''){ const el = $('#toast'); el.textContent = msg; el.className = 'toast show ' + cls; clearTimeout(toastT); toastT = setTimeout(() => { el.className = 'toast ' + cls; }, 2600); }
+let lock = null;
+async function wake(){ try { lock = await navigator.wakeLock?.request('screen'); } catch (e) { lock = null; } }
+function unwake(){ try { lock?.release(); } catch (e) {} lock = null; }
+
+/* race math: rivals move at a fixed pace around your planned time, you move with the clock */
+const elapsed = r => (r.pausedAt ?? now()) - r.startedAt - r.pausedMs;
+function positions(r, e){
+  const timed = !!r.baseMs, base = r.baseMs || LAP;
+  const ramp = Math.min(1, e / 20000);
+  const rivals = r.mults.map((m, i) => {
+    let d = e / (base * m) * (1 + .03 * ramp * Math.sin(e / 6000 + i * 2.1));
+    if (timed) d = Math.min(1, d);
+    return { i, name:SCENES[S.settings.scene].rivals[i], c:`--c${i + 2}`, d, finishAt:base * m };
+  });
+  let you = e / (timed ? base + r.extMs : LAP);
+  if (timed) you = Math.min(.985, you);
+  const ahead = rivals.filter(x => x.d > you + 1e-6).length;
+  return { timed, rivals, you, ahead };
+}
+
+/* field */
+let builtFor = '';
+function buildField(){
+  const sc = SCENES[S.settings.scene] || SCENES.river;
+  const r = S.run && S.run.kind === 'task' ? S.run : null;
+  const timed = r ? !!r.baseMs : !!S.draft.min;
+  const names = ['You', ...sc.rivals];
+  $('#field').innerHTML = (timed ? '<div class="finish" aria-hidden="true"></div>' : '') + '<div class="place-badge" id="badge" hidden></div>' +
+    names.map((n, i) => `<div class="lane"><div class="wave"></div><div class="racer ${i ? '' : 'me'}" data-r="${i}" style="--c:var(--c${i + 1});--p:0"><span class="tag">${esc(n)}</span><span class="bob">${sc.svg}</span></div></div>`).join('');
+  builtFor = S.settings.scene + '|' + timed;
+}
+function placeRacers(r, e){
+  const p = positions(r, e), f = $('#field');
+  const set = (i, d) => { const el = f.querySelector(`[data-r="${i}"]`); if (el) el.style.setProperty('--p', p.timed ? d : d % 1); };
+  set(0, p.you); p.rivals.forEach(x => set(x.i + 1, x.d));
+  const b = $('#badge');
+  if (b){ b.hidden = false; b.textContent = p.timed ? `P${p.ahead + 1} of 4` : `Lap ${Math.floor(p.you) + 1} · P${p.ahead + 1}`; }
+  return p;
+}
+
+/* header controls */
+function ctrls(){
+  const r = S.run, c = $('#ctrls');
+  if (!r){ c.innerHTML = ''; return; }
+  if (r.kind === 'task'){
+    c.innerHTML = `<button class="btn" id="k-pause">${r.pausedAt ? 'Resume' : 'Pause'}</button>
+      <button class="btn" id="k-ext"${r.baseMs ? '' : ' hidden'}>+5 min</button>
+      <button class="btn" id="k-stop">Stop</button>
+      <button class="btn btn-go" id="k-done">Done! <kbd>D</kbd></button>`;
+    $('#k-pause').onclick = togglePause; $('#k-ext').onclick = () => extend(5);
+    $('#k-stop').onclick = () => finish('stopped'); $('#k-done').onclick = () => finish('done');
+  } else {
+    c.innerHTML = `<button class="btn btn-go" id="k-back">Back to it</button>`;
+    $('#k-back').onclick = endBreak;
+  }
+}
+
+/* render */
+function render(){
+  $('#app').dataset.scene = S.settings.scene;
+  const r = S.run;
+  const sig = S.settings.scene + '|' + (r && r.kind === 'task' ? !!r.baseMs : !!S.draft.min);
+  if (sig !== builtFor) buildField();
+  $('#c-setup').hidden = !!r || !!S.result;
+  $('#c-result').hidden = !(S.result && !r);
+  $('#c-break').hidden = !(r && r.kind === 'break');
+  $('#now').hidden = !(r && r.kind === 'task');
+  if (r && r.kind === 'task') $('#now-t').textContent = r.task;
+  $('#field').classList.toggle('go', !!(r && !r.pausedAt));
+  ctrls();
+  if (!r && !S.result) renderSetup();
+  if (S.result && !r) renderResult();
+  if (r && r.kind === 'break') $('#b-move').textContent = MOVES[r.move % MOVES.length];
+  if (!r || r.kind === 'break'){
+    if (!S.result || r) $$('#field .racer').forEach(el => el.style.setProperty('--p', 0));
+    const b = $('#badge'); if (b) b.hidden = true;
+  }
+  $('#t-sound').setAttribute('aria-pressed', String(S.settings.sound));
+  tick();
+}
+function renderSetup(){
+  if (document.activeElement !== $('#task-in')) $('#task-in').value = S.draft.task || '';
+  const m = Number(S.draft.min) || 0; let hit = false;
+  $$('#dur .chip').forEach(c => { const on = Number(c.dataset.min) === m; hit ||= on; c.setAttribute('aria-pressed', String(on)); });
+  if (document.activeElement !== $('#dur-in')) $('#dur-in').value = hit ? '' : m;
+  $('#dur-hint').textContent = m ? `Counts down from ${m} min, then keeps counting in red. Hit Done before your rivals cross the line.` : 'Counts up with no finish line. Rivals do laps around you.';
+  $('#log-it-hint').textContent = m ? `logs ${m} min, ending now` : 'pick minutes to log';
+  $('#clock').textContent = m ? fmt(m * MIN) : '00:00';
+  $('#clock-cap').textContent = 'Ready';
+  $('#clock-box').className = 'clock-box';
+  document.title = 'Redline';
+}
+function renderResult(){
+  const R = S.result, pl = $('#r-place');
+  pl.className = 'big-place' + (R.place === 1 ? ' p1' : '');
+  if (R.status === 'stopped'){ pl.textContent = 'Stop'; $('#r-eye').textContent = 'Stopped · time still logged'; }
+  else { pl.textContent = 'P' + R.place; $('#r-eye').textContent = R.place === 1 ? 'You won' : R.place === 2 ? 'So close' : 'Finished'; }
+  let line = `${esc(R.task)} · ${fmt(R.actualMs)}`;
+  if (R.plannedMs){ const d = R.actualMs - R.plannedMs; line += d <= 0 ? ` · ${fmt(-d)} under your time` : ` · ${fmt(d)} over your time`; }
+  $('#r-line').innerHTML = line;
+  $('#r-order').innerHTML = (R.order || []).map((x, i) => `<span class="${x.me ? 'me' : ''}" style="--c:var(${x.c})">${i + 1}. ${esc(x.name)}</span>`).join('');
+  const sug = R.actualMs <= 30 * MIN ? 5 : R.actualMs <= 60 * MIN ? 10 : 15;
+  $('#r-breaks').innerHTML = [5, 10, 15].map(m => `<button class="cbtn" data-brk="${m}"${m === sug ? ' style="border-color:var(--calm)"' : ''}>${m} min${m === sug ? ' · suggested' : ''}</button>`).join('');
+  $('#clock-cap').textContent = R.status === 'stopped' ? 'Stopped' : 'Finished';
+  $('#clock').textContent = fmt(R.actualMs);
+  $('#clock-box').className = 'clock-box';
+  document.title = 'Redline';
+}
+
+/* tick */
+let prevAhead = null;
+function tick(){
+  const r = S.run; if (!r) return;
+  const e = elapsed(r), box = $('#clock-box');
+  if (r.kind === 'task'){
+    let main, cap, over = false;
+    if (r.baseMs){
+      const rem = r.baseMs + r.extMs - e;
+      if (rem > 0){ main = fmtUp(rem); cap = `left · ${fmt(e)} in`; }
+      else { main = '−' + fmt(-rem); cap = `overtime · ${fmt(e)} total`; over = true; }
+    } else { main = fmt(e); cap = 'stopwatch'; }
+    if (r.pausedAt) cap = 'paused';
+    $('#clock').textContent = main; $('#clock-cap').textContent = cap;
+    box.className = 'clock-box' + (over ? ' over' : '') + (r.pausedAt ? ' paused' : '');
+    document.title = `${main} · ${r.task}`;
+    if (over && !r.flagged){ r.flagged = true; save(); sfx.flag(); toast('Time is up. Keep going, hit Done, or add 5 min.', 'bad'); }
+    const p = placeRacers(r, e);
+    if (S.settings.toasts && prevAhead != null && e > 10000 && !r.pausedAt && p.ahead !== prevAhead){
+      if (p.ahead < prevAhead){ toast(`You passed ${p.rivals.filter(x => x.d <= p.you).sort((a, b) => b.d - a.d)[0]?.name || 'someone'}!`, 'good'); sfx.pass(); }
+      else { toast(`${p.rivals.filter(x => x.d > p.you).sort((a, b) => a.d - b.d)[0]?.name || 'Someone'} overtook you!`, 'bad'); sfx.passed(); }
+    }
+    prevAhead = p.ahead;
+  } else {
+    const rem = r.baseMs + r.extMs - e;
+    $('#clock').textContent = rem > 0 ? fmtUp(rem) : '−' + fmt(-rem);
+    $('#clock-cap').textContent = rem > 0 ? 'break · back in' : 'break is over';
+    box.className = 'clock-box brk' + (rem <= 0 ? ' over' : '');
+    document.title = `Break ${$('#clock').textContent}`;
+    if (rem <= 0 && !r.flagged){ r.flagged = true; save(); sfx.chime(); toast('Break is over. Come back when you are ready.', 'calm'); }
+  }
+}
+setInterval(tick, 250);
+
+/* actions */
+let counting = false;
+function start(task){
+  if (counting) return;
+  const min = Number(S.draft.min) || 0;
+  S.draft.task = task;
+  const mults = PACE[S.settings.diff].map(m => m * (0.96 + Math.random() * .08));
+  const go = () => {
+    counting = false;
+    S.run = { kind:'task', task, startedAt:now(), pausedAt:null, pausedMs:0, baseMs:min ? min * MIN : null, extMs:0, mults, flagged:false };
+    S.result = null; prevAhead = null; save(); wake(); render();
+  };
+  ac();
+  if (!S.settings.count || reduce){ sfx.go(); go(); return; }
+  counting = true;
+  $('#c-setup').hidden = true; $('#c-result').hidden = true;
+  const steps = ['3', '2', '1', 'GO!']; let i = 0;
+  const step = () => {
+    $('#clock').textContent = steps[i]; $('#clock-cap').textContent = i < 3 ? 'get ready' : 'go go go';
+    i < 3 ? sfx.count() : sfx.go();
+    if (++i < steps.length) setTimeout(step, 700); else setTimeout(go, 350);
+  };
+  step();
+}
+function togglePause(){
+  const r = S.run; if (!r || r.kind !== 'task') return;
+  if (r.pausedAt){ r.pausedMs += now() - r.pausedAt; r.pausedAt = null; } else r.pausedAt = now();
+  save(); render();
+}
+function extend(m){ const r = S.run; if (!r || !r.baseMs) return; r.extMs += m * MIN; r.flagged = false; save(); toast(`+${m} min for you. Rivals keep their pace.`); tick(); }
+function finish(status){
+  const r = S.run; if (!r || r.kind !== 'task') return;
+  if (r.pausedAt){ r.pausedMs += now() - r.pausedAt; r.pausedAt = null; }
+  const e = elapsed(r), p = positions(r, e);
+  let place = null, order = [];
+  if (status === 'done'){
+    if (p.timed){
+      place = 1 + p.rivals.filter(x => x.finishAt < e).length;
+      order = [...p.rivals.map(x => ({ name:x.name, c:x.c, t:x.finishAt })), { name:'You', c:'--c1', t:e, me:true }].sort((a, b) => a.t - b.t);
+    } else {
+      const you = e / LAP; place = 1 + p.rivals.filter(x => x.d > you).length;
+      order = [...p.rivals.map(x => ({ name:x.name, c:x.c, t:-x.d })), { name:'You', c:'--c1', t:-you, me:true }].sort((a, b) => a.t - b.t);
+    }
+  }
+  const entry = { id:uid(), type:'task', task:r.task, start:r.startedAt, plannedMs:r.baseMs ? r.baseMs + r.extMs : 0, actualMs:e, place, status };
+  S.log.unshift(entry);
+  S.result = { ...entry, order };
+  S.run = null; save(); unwake();
+  // park the racers where they ended
+  const f = $('#field');
+  f.querySelector('[data-r="0"]')?.style.setProperty('--p', status === 'done' && p.timed ? 1 : (p.timed ? p.you : p.you % 1));
+  p.rivals.forEach(x => f.querySelector(`[data-r="${x.i + 1}"]`)?.style.setProperty('--p', p.timed ? x.d : x.d % 1));
+  if (status === 'done') place === 1 ? sfx.win() : sfx.done();
+  render();
+}
+function startBreak(m){
+  ac();
+  S.run = { kind:'break', task:'Break', startedAt:now(), pausedAt:null, pausedMs:0, baseMs:m * MIN, extMs:0, move:Math.floor(Math.random() * MOVES.length), flagged:false };
+  S.result = null; save(); sfx.chime(); render();
+}
+function endBreak(){
+  const r = S.run; if (!r || r.kind !== 'break') return;
+  S.log.unshift({ id:uid(), type:'break', task:'Break', start:r.startedAt, plannedMs:r.baseMs + r.extMs, actualMs:elapsed(r), place:null, status:'done' });
+  S.run = null; S.draft.task = ''; save(); render(); $('#task-in').focus();
+}
+
+/* wiring */
+$('#log-it').addEventListener('click', () => {
+  const t = $('#task-in').value.trim();
+  if (!t){ $('#task-in').focus(); toast('Type what you did first.'); return; }
+  const min = Number(S.draft.min) || 0;
+  if (!min){ $('#dur-in').focus(); toast('Pick how many minutes it took.'); return; }
+  const ms = min * MIN;
+  S.log.unshift({ id:uid(), type:'task', task:t, start:now() - ms, plannedMs:0, actualMs:ms, place:null, status:'logged' });
+  S.draft.task = ''; save(); render(); $('#task-in').focus();
+  toast(`Logged: ${t} · ${min} min`, 'good');
+});
+$('#c-setup').addEventListener('submit', e => { e.preventDefault(); const t = $('#task-in').value.trim(); if (!t){ $('#task-in').focus(); toast('Type the one thing you are doing first.'); return; } start(t); });
+$('#task-in').addEventListener('input', e => { S.draft.task = e.target.value; save(); });
+$('#dur').addEventListener('click', e => { const c = e.target.closest('.chip'); if (!c) return; S.draft.min = Number(c.dataset.min); save(); render(); });
+$('#dur-in').addEventListener('input', e => { const v = Math.round(Number(e.target.value)); if (v > 0){ S.draft.min = Math.min(600, v); save(); render(); } });
+$('#r-breaks').addEventListener('click', e => { const b = e.target.closest('[data-brk]'); if (b) startBreak(Number(b.dataset.brk)); });
+$('#r-next').addEventListener('click', () => { S.result = null; S.draft.task = ''; save(); render(); $('#task-in').focus(); });
+$('#r-again').addEventListener('click', () => { const t = S.result.task; S.result = null; save(); start(t); });
+$('#r-drop').addEventListener('click', () => { const id = S.result.id; S.log = S.log.filter(l => l.id !== id); S.result = null; save(); render(); toast('Removed from the log.'); $('#task-in').focus(); });
+$('#b-another').addEventListener('click', () => { const r = S.run; if (!r) return; r.move = (r.move + 1 + Math.floor(Math.random() * (MOVES.length - 1))) % MOVES.length; save(); render(); });
+$('#b-ext').addEventListener('click', () => { const r = S.run; if (!r) return; r.extMs += 2 * MIN; r.flagged = false; save(); tick(); });
+$('#b-end').addEventListener('click', endBreak);
+$('#t-sound').addEventListener('click', () => { S.settings.sound = !S.settings.sound; save(); render(); if (S.settings.sound) sfx.count(); });
+
+$('#now-t').addEventListener('click', () => { const i = $('#now-edit'); i.value = S.run.task; $('#now-t').hidden = true; i.hidden = false; i.focus(); i.select(); });
+function commitRename(){ const i = $('#now-edit'); if (i.hidden) return; const v = i.value.trim(); if (v && S.run) { S.run.task = v; save(); } i.hidden = true; $('#now-t').hidden = false; render(); }
+$('#now-edit').addEventListener('blur', commitRename);
+$('#now-edit').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); commitRename(); } if (e.key === 'Escape'){ $('#now-edit').value = S.run.task; commitRename(); } });
+
+function openDrawer(id){ $$('.drawer').forEach(d => d.classList.toggle('open', d.id === id)); if (id === 'd-log') renderLog(); if (id === 'd-set') renderSettings(); }
+$('#t-log').addEventListener('click', () => openDrawer('d-log'));
+$('#t-set').addEventListener('click', () => openDrawer('d-set'));
+$$('[data-close]').forEach(b => b.addEventListener('click', () => openDrawer('')));
+
+function renderLog(){
+  const today = dayKey(now());
+  const work = S.log.filter(l => dayKey(l.start) === today && l.type === 'task');
+  $('#tiles').innerHTML = [['Focus today', dur(work.reduce((a, l) => a + l.actualMs, 0))], ['Tasks', work.length], ['Wins', work.filter(l => l.place === 1).length]]
+    .map(([k, v]) => `<div class="tile"><small>${k}</small><b>${v}</b></div>`).join('');
+  const groups = {};
+  S.log.slice().sort((a, b) => b.start - a.start).forEach(l => (groups[dayKey(l.start)] ||= []).push(l));
+  const keys = Object.keys(groups);
+  if (!keys.length){ $('#log-list').innerHTML = '<p class="hint">Nothing yet. Every task you finish or stop lands here with its time.</p>'; return; }
+  $('#log-list').innerHTML = keys.map(k => {
+    const title = k === today ? 'Today' : new Date(groups[k][0].start).toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'short' });
+    const tot = groups[k].filter(l => l.type === 'task').reduce((a, l) => a + l.actualMs, 0);
+    return `<div class="day"><h3>${title} · ${dur(tot)}</h3>${groups[k].map(l => {
+      const over = l.type === 'task' && l.plannedMs && l.actualMs > l.plannedMs;
+      const pill = l.type === 'break' ? '<span class="pill brk">break</span>' : l.status === 'stopped' ? '<span class="pill">stopped</span>' : l.status === 'logged' ? '<span class="pill">added</span>' : l.place === 1 ? '<span class="pill win">P1</span>' : l.place ? `<span class="pill">P${l.place}</span>` : '';
+      return `<div class="entry"><span class="tm">${hhmm(l.start)}</span><span class="tk">${esc(l.task)}${pill}<small>${l.status === 'logged' ? 'logged afterwards' : l.plannedMs ? 'planned ' + dur(l.plannedMs) : 'stopwatch'}</small></span><span class="d ${over ? 'over' : ''}">${fmt(l.actualMs)}</span></div>`;
+    }).join('')}</div>`;
+  }).join('');
+}
+$('#l-csv').addEventListener('click', () => {
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = [['date', 'start', 'type', 'task', 'planned_min', 'actual_min', 'result']];
+  S.log.slice().sort((a, b) => a.start - b.start).forEach(l => rows.push([dayKey(l.start), hhmm(l.start), l.type, l.task, (l.plannedMs / MIN).toFixed(1), (l.actualMs / MIN).toFixed(1), l.status === 'stopped' ? 'stopped' : l.status === 'logged' ? 'added' : l.place ? 'P' + l.place : '']));
+  const text = rows.map(r => r.map(q).join(',')).join('\n'), box = $('#csv');
+  const fb = () => { box.hidden = false; box.value = text; box.focus(); box.select(); toast('Select the text and copy it.'); };
+  try { navigator.clipboard.writeText(text).then(() => { box.hidden = true; toast('Copied the log as CSV.', 'good'); }, fb); } catch (e) { fb(); }
+});
+$('#l-clear').addEventListener('click', () => { $('#l-clear').hidden = true; $('#l-confirm').hidden = false; });
+$('#l-no').addEventListener('click', () => { $('#l-clear').hidden = false; $('#l-confirm').hidden = true; });
+$('#l-yes').addEventListener('click', () => { S.log = []; save(); $('#l-clear').hidden = false; $('#l-confirm').hidden = true; renderLog(); });
+
+function renderSettings(){
+  $('#scenes').innerHTML = Object.entries(SCENES).map(([id, s]) => `<button class="scene" data-scene="${id}" aria-pressed="${S.settings.scene === id}"><i style="background:${s.pv}"></i><span>${s.name}<small>${s.note}</small></span></button>`).join('');
+  $$('#diff .chip').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.diff === S.settings.diff)));
+  const p = PACE[S.settings.diff];
+  $('#diff-hint').textContent = `In a 25 min race the rivals finish around ${fmt(25 * MIN * p[0])}, ${fmt(25 * MIN * p[1])} and ${fmt(25 * MIN * p[2])}.`;
+  $('#s-count').checked = S.settings.count; $('#s-toast').checked = S.settings.toasts;
+}
+$('#scenes').addEventListener('click', e => { const b = e.target.closest('.scene'); if (!b) return; S.settings.scene = b.dataset.scene; save(); renderSettings(); render(); });
+$('#diff').addEventListener('click', e => { const c = e.target.closest('.chip'); if (!c) return; S.settings.diff = c.dataset.diff; save(); renderSettings(); });
+$('#s-count').addEventListener('change', e => { S.settings.count = e.target.checked; save(); });
+$('#s-toast').addEventListener('change', e => { S.settings.toasts = e.target.checked; save(); });
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') openDrawer('');
+  if (/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
+  const r = S.run;
+  if (e.code === 'Space' && r?.kind === 'task'){ e.preventDefault(); togglePause(); }
+  if ((e.key === 'd' || e.key === 'D') && r?.kind === 'task') finish('done');
+  if ((e.key === '+' || e.key === '=') && r?.kind === 'task') extend(5);
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.run) wake(); });
+
+render();
+if (!S.run && !S.result) setTimeout(() => $('#task-in').focus(), 50);
+})();
+</script>
+
+<script>if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');</script>
+</body>
+</html>
