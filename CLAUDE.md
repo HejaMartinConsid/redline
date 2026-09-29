@@ -19,5 +19,5 @@ A race-style focus timer for one task at a time. It's for ADHD-friendly focus: y
 - Respect `prefers-reduced-motion`.
 
 ## When editing
-- Bump `CACHE` in `sw.js` whenever `index.html` changes, so installed copies update.
+- Whenever `index.html` changes, bump `VERSION` (semver: minor for features, patch for fixes) in BOTH `index.html` and `sw.js` so installed copies update and the Scene drawer's version check sees it. Tell Martin the new version number.
 - Test with `npx serve .` and open http://localhost:3000.

@@ -344,6 +344,11 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
       <label class="check"><input type="checkbox" id="s-toast"> Tell me when someone overtakes</label>
       <label class="check"><input type="checkbox" id="s-grey"> Greyscale, for late nights</label>
     </div>
+    <div class="set">
+      <span class="eyebrow">Version</span>
+      <p class="hint" id="ver-line">Redline v1.3.0</p>
+      <div class="row"><button class="cbtn" id="ver-check">Check for update</button><button class="cbtn cbtn-go" id="ver-go" hidden>Update now</button></div>
+    </div>
     <p class="hint">Saved in this browser only.</p>
   </div>
 </aside>
@@ -353,6 +358,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 <script>
 (() => {
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const VERSION = '1.3.0';
 const KEY = 'redline.v2', MIN = 60000, LAP = 25 * MIN;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -705,7 +711,7 @@ function commitRename(){ const i = $('#now-edit'); if (i.hidden) return; const v
 $('#now-edit').addEventListener('blur', commitRename);
 $('#now-edit').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); commitRename(); } if (e.key === 'Escape'){ $('#now-edit').value = S.run.task; commitRename(); } });
 
-function openDrawer(id){ if (id !== 'd-log') peek = false; $$('.drawer').forEach(d => d.classList.toggle('open', d.id === id)); if (id === 'd-log') renderLog(); if (id === 'd-set') renderSettings(); }
+function openDrawer(id){ if (id !== 'd-log') peek = false; $$('.drawer').forEach(d => d.classList.toggle('open', d.id === id)); if (id === 'd-log') renderLog(); if (id === 'd-set'){ renderSettings(); checkVersion(); } }
 $('#t-log').addEventListener('click', () => openDrawer('d-log'));
 $('#t-set').addEventListener('click', () => openDrawer('d-set'));
 /* hot edge: hover (or swipe from the left edge) peeks the log; it closes when the pointer leaves */
@@ -814,6 +820,26 @@ document.addEventListener('keydown', e => {
   if ((e.key === '+' || e.key === '=') && r?.kind === 'task') extend(5);
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.run) wake(); });
+
+/* version check: compare the running version with what the server has right now */
+async function checkVersion(){
+  const line = $('#ver-line'), go = $('#ver-go');
+  line.textContent = `Redline v${VERSION} · checking…`; go.hidden = true;
+  try {
+    const t = await (await fetch('index.html?v=' + now(), { cache:'no-store' })).text();
+    const latest = (t.match(/const VERSION = '([^']+)'/) || [])[1];
+    if (!latest) throw 0;
+    if (latest === VERSION) line.textContent = `Redline v${VERSION} · you have the latest`;
+    else { line.textContent = `Redline v${VERSION} · v${latest} is available`; go.textContent = `Update to v${latest}`; go.hidden = false; }
+  } catch (e) { line.textContent = `Redline v${VERSION} · could not check (offline?)`; }
+}
+$('#ver-check').addEventListener('click', checkVersion);
+$('#ver-go').addEventListener('click', async () => {
+  if (S.run && !confirm('A timer is running. It is saved, but the page will reload. Continue?')) return;
+  try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); for (const k of await caches.keys()) await caches.delete(k); } catch (e) {}
+  location.reload();
+});
+$('#ver-line').textContent = `Redline v${VERSION}`;
 
 applyGrey();
 render();
