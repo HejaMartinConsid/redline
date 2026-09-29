@@ -176,6 +176,21 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 .tg summary small{display:block;font-weight:500;color:var(--card-soft);font-size:13px}
 .tg summary .d{font:800 15px var(--font-num)}
 .tg .entry:last-of-type{border-bottom:0}
+.titlebar{display:none;flex:none;background:var(--band);height:env(titlebar-area-height,34px);-webkit-app-region:drag;app-region:drag}
+@media (display-mode:window-controls-overlay){.titlebar{display:block}}
+.badge{min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:var(--accent);color:var(--accent-ink);font:800 12px/20px var(--font-num);text-align:center}
+.dump-add{display:flex;gap:8px}
+.dump-add .edit-in{flex:1;font-size:16px}
+.dump-list{display:flex;flex-direction:column}
+.dump-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--card-line);background:var(--card)}
+.dump-item.drag{opacity:.4}
+.dump-item.over{box-shadow:0 -2px 0 var(--accent)}
+.dump-item .t{font-weight:700;line-height:1.25;overflow-wrap:anywhere;cursor:grab}
+.dump-item .acts{display:flex;gap:4px;align-items:center}
+.mini{width:32px;height:32px;border-radius:8px;border:0;background:#f1f3f8;color:var(--card-ink);font:800 14px var(--font-body)}
+.mini:hover{background:#e3e7f0}
+.mini:disabled{opacity:.3;cursor:default}
+.mini.go{width:auto;padding:0 12px;background:var(--accent);color:var(--accent-ink)}
 .edit-row{display:grid;grid-template-columns:minmax(0,1fr) 116px;gap:10px}
 .edit-row label{display:flex;flex-direction:column;gap:4px;font:800 11px var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:var(--card-soft)}
 .edit-in{width:100%;height:46px;padding:0 12px;border-radius:12px;border:2px solid var(--card-line);background:#f6f7fb;color:var(--card-ink);font:700 18px var(--font-body);text-transform:none;letter-spacing:0}
@@ -230,9 +245,11 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 
 
 <div class="app" id="app" data-scene="river">
+  <div class="titlebar" aria-hidden="true"></div>
   <header class="hud">
     <div class="tools">
       <button class="tool" id="t-log" aria-label="Open time log"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Log</button>
+      <button class="tool" id="t-dump" aria-label="Open brain dump (N)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Dump<span class="badge" id="dump-n" hidden></span></button>
       <button class="tool" id="t-set" aria-label="Open scene settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>Scene</button>
       <button class="tool" id="t-sound" aria-pressed="true" aria-label="Sound"><svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg></button>
       <button class="tool" id="t-grey" aria-pressed="false" aria-label="Greyscale mode" title="Greyscale mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 6.7 6.7 0 0 0 20 14.5z"/></svg></button>
@@ -269,6 +286,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
         <input class="chip-in" id="dur-in" type="number" min="1" max="600" placeholder="min" aria-label="Custom minutes">
       </div>
       <p class="hint" id="dur-hint"></p>
+      <p class="hint" id="next-hint" hidden></p>
       <div class="row"><button class="cbtn cbtn-go" type="submit">Start the race</button><button class="cbtn" type="button" id="log-it">Just log it</button><span class="hint" id="log-it-hint"></span></div>
     </form>
 
@@ -325,6 +343,18 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 
 <div class="edge" id="edge" aria-hidden="true"></div>
 
+<aside class="drawer" id="d-dump" aria-label="Brain dump">
+  <div class="drawer-h"><h2>Brain dump</h2><button class="x" data-close aria-label="Close">✕</button></div>
+  <div class="drawer-b">
+    <form class="dump-add" id="dump-form" autocomplete="off">
+      <input class="edit-in" id="dump-in" maxlength="120" placeholder="Park a task for later" aria-label="New task">
+      <button class="cbtn" type="submit">Add</button>
+    </form>
+    <p class="hint" id="dump-hint"></p>
+    <div class="dump-list" id="dump-list"></div>
+  </div>
+</aside>
+
 <aside class="drawer" id="d-set" aria-label="Scene settings">
   <div class="drawer-h"><h2>Scene</h2><button class="x" data-close aria-label="Close">✕</button></div>
   <div class="drawer-b">
@@ -346,7 +376,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
     </div>
     <div class="set">
       <span class="eyebrow">Version</span>
-      <p class="hint" id="ver-line">Redline v1.3.0</p>
+      <p class="hint" id="ver-line">Redline v1.4.0</p>
       <div class="row"><button class="cbtn" id="ver-check">Check for update</button><button class="cbtn cbtn-go" id="ver-go" hidden>Update now</button></div>
     </div>
     <p class="hint">Saved in this browser only.</p>
@@ -358,7 +388,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 <script>
 (() => {
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-const VERSION = '1.3.0';
+const VERSION = '1.4.0';
 const KEY = 'redline.v2', MIN = 60000, LAP = 25 * MIN;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -403,7 +433,7 @@ const dayKey = ts => { const d = new Date(ts); return `${d.getFullYear()}-${pad(
 
 /* state */
 function defaults(){
-  return { settings:{ scene:'river', sound:true, count:true, toasts:true, diff:'normal', grey:false }, draft:{ task:'', min:25 }, run:null, result:null, log:[] };
+  return { settings:{ scene:'river', sound:true, count:true, toasts:true, diff:'normal', grey:false }, draft:{ task:'', min:25 }, run:null, result:null, log:[], queue:[] };
 }
 function load(){
   const def = defaults(); let d = null;
@@ -415,7 +445,7 @@ function load(){
     } catch (e) {}
     return def;
   }
-  return { ...def, ...d, settings:{ ...def.settings, ...(d.settings || {}) }, draft:{ ...def.draft, ...(d.draft || {}) }, log:Array.isArray(d.log) ? d.log : [] };
+  return { ...def, ...d, settings:{ ...def.settings, ...(d.settings || {}) }, draft:{ ...def.draft, ...(d.draft || {}) }, log:Array.isArray(d.log) ? d.log : [], queue:Array.isArray(d.queue) ? d.queue : [] };
 }
 let S = load();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
@@ -526,7 +556,13 @@ function render(){
     const b = $('#badge'); if (b) b.hidden = true;
   }
   $('#t-sound').setAttribute('aria-pressed', String(S.settings.sound));
+  themeColor();
   tick();
+}
+function themeColor(){
+  let c = getComputedStyle($('#app')).getPropertyValue('--band').trim();
+  if (S.settings.grey && /^#[0-9a-f]{6}$/i.test(c)){ const n = parseInt(c.slice(1), 16), y = Math.round(((n >> 16 & 255) * .299 + (n >> 8 & 255) * .587 + (n & 255) * .114) * .88), h = pad(y.toString(16)); c = '#' + h + h + h; }
+  const m = document.querySelector('meta[name=theme-color]'); if (m && c) m.content = c;
 }
 function renderSetup(){
   if (document.activeElement !== $('#task-in')) $('#task-in').value = S.draft.task || '';
@@ -534,6 +570,9 @@ function renderSetup(){
   $$('#dur .chip').forEach(c => { const on = Number(c.dataset.min) === m; hit ||= on; c.setAttribute('aria-pressed', String(on)); });
   if (document.activeElement !== $('#dur-in')) $('#dur-in').value = hit ? '' : m;
   $('#dur-hint').textContent = m ? `Counts down from ${m} min, then keeps counting in red. Hit Done before your rivals cross the line.` : 'Counts up with no finish line. Rivals do laps around you.';
+  const nx = S.queue[0], nh = $('#next-hint');
+  nh.hidden = !nx || !!S.draft.qid;
+  if (nx) nh.innerHTML = `Up next from your dump: <b>${esc(nx.text)}</b> <button type="button" class="lnk" id="use-next">Use</button>`;
   $('#log-it-hint').textContent = m ? `logs ${m} min, ending now` : 'pick minutes to log';
   $('#clock').textContent = m ? fmt(m * MIN) : '00:00';
   $('#clock-cap').textContent = 'Ready';
@@ -603,6 +642,7 @@ function start(task){
   if (counting) return;
   const min = Number(S.draft.min) || 0;
   S.draft.task = task;
+  if (S.draft.qid){ S.queue = S.queue.filter(q => q.id !== S.draft.qid); S.draft.qid = null; renderDump(); }
   const mults = PACE[S.settings.diff].map(m => m * (0.96 + Math.random() * .08));
   const go = () => {
     counting = false;
@@ -675,7 +715,7 @@ $('#log-it').addEventListener('click', () => {
   toast(`Logged: ${t} · ${min} min`, 'good');
 });
 $('#c-setup').addEventListener('submit', e => { e.preventDefault(); const t = $('#task-in').value.trim(); if (!t){ $('#task-in').focus(); toast('Type the one thing you are doing first.'); return; } start(t); });
-$('#task-in').addEventListener('input', e => { S.draft.task = e.target.value; save(); });
+$('#task-in').addEventListener('input', e => { S.draft.task = e.target.value; S.draft.qid = null; save(); });
 $('#dur').addEventListener('click', e => { const c = e.target.closest('.chip'); if (!c) return; S.draft.min = Number(c.dataset.min); save(); render(); });
 $('#dur-in').addEventListener('input', e => { const v = Math.round(Number(e.target.value)); if (v > 0){ S.draft.min = Math.min(600, v); save(); render(); } });
 function parseTime(v){
@@ -701,7 +741,7 @@ $('#r-drop').addEventListener('click', () => { const id = S.result.id; S.log = S
 $('#b-another').addEventListener('click', () => { const r = S.run; if (!r) return; r.move = (r.move + 1 + Math.floor(Math.random() * (MOVES.length - 1))) % MOVES.length; save(); render(); });
 $('#b-ext').addEventListener('click', () => { const r = S.run; if (!r) return; r.extMs += 2 * MIN; r.flagged = false; save(); tick(); });
 $('#b-end').addEventListener('click', endBreak);
-function applyGrey(){ document.documentElement.classList.toggle('grey', !!S.settings.grey); $('#t-grey').setAttribute('aria-pressed', String(!!S.settings.grey)); const c = $('#s-grey'); if (c) c.checked = !!S.settings.grey; }
+function applyGrey(){ document.documentElement.classList.toggle('grey', !!S.settings.grey); themeColor(); $('#t-grey').setAttribute('aria-pressed', String(!!S.settings.grey)); const c = $('#s-grey'); if (c) c.checked = !!S.settings.grey; }
 $('#t-grey').addEventListener('click', () => { S.settings.grey = !S.settings.grey; save(); applyGrey(); });
 $('#s-grey').addEventListener('change', e => { S.settings.grey = e.target.checked; save(); applyGrey(); });
 $('#t-sound').addEventListener('click', () => { S.settings.sound = !S.settings.sound; save(); render(); if (S.settings.sound) sfx.count(); });
@@ -711,9 +751,48 @@ function commitRename(){ const i = $('#now-edit'); if (i.hidden) return; const v
 $('#now-edit').addEventListener('blur', commitRename);
 $('#now-edit').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); commitRename(); } if (e.key === 'Escape'){ $('#now-edit').value = S.run.task; commitRename(); } });
 
-function openDrawer(id){ if (id !== 'd-log') peek = false; $$('.drawer').forEach(d => d.classList.toggle('open', d.id === id)); if (id === 'd-log') renderLog(); if (id === 'd-set'){ renderSettings(); checkVersion(); } }
+function openDrawer(id){ if (id !== 'd-log') peek = false; $$('.drawer').forEach(d => d.classList.toggle('open', d.id === id)); if (id === 'd-log') renderLog(); if (id === 'd-set'){ renderSettings(); checkVersion(); } if (id === 'd-dump'){ renderDump(); setTimeout(() => $('#dump-in').focus(), 60); } }
 $('#t-log').addEventListener('click', () => openDrawer('d-log'));
 $('#t-set').addEventListener('click', () => openDrawer('d-set'));
+/* brain dump */
+function renderDump(){
+  const n = S.queue.length, b = $('#dump-n'); b.hidden = !n; b.textContent = n;
+  $('#dump-hint').textContent = S.run && S.run.kind === 'task' ? 'Keep going. Park it here, deal with it after this one.' : n ? 'Drag or use the arrows to set the order. Top goes first.' : 'Enter adds one. Paste several lines to add several.';
+  const busy = !!(S.run && S.run.kind === 'task'), min = Number(S.draft.min) || 0;
+  $('#dump-list').innerHTML = S.queue.map((q, i) => `<div class="dump-item" draggable="true" data-id="${q.id}"><span class="t">${esc(q.text)}</span><span class="acts"><button class="mini" data-up="${q.id}" ${i ? '' : 'disabled'} aria-label="Move up">↑</button><button class="mini" data-down="${q.id}" ${i < n - 1 ? '' : 'disabled'} aria-label="Move down">↓</button><button class="mini" data-del="${q.id}" aria-label="Remove">✕</button>${busy ? '' : `<button class="mini go" data-go="${q.id}">Start${min ? ' · ' + min + 'm' : ''}</button>`}</span></div>`).join('');
+}
+function addDump(text){
+  const lines = String(text).split(/\n+/).map(x => x.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim()).filter(Boolean);
+  lines.forEach(t => S.queue.push({ id:uid(), text:t.slice(0, 120) }));
+  if (lines.length){ save(); renderDump(); if (!S.run && !S.result) renderSetup(); }
+}
+function moveDump(id, to){
+  const i = S.queue.findIndex(q => q.id === id); if (i < 0 || to < 0 || to >= S.queue.length) return;
+  S.queue.splice(to, 0, S.queue.splice(i, 1)[0]); save(); renderDump(); if (!S.run && !S.result) renderSetup();
+}
+function useDump(id, go){
+  const q = S.queue.find(x => x.id === id); if (!q) return;
+  if (S.run){ toast('Finish what you are on first.'); return; }
+  S.result = null; S.draft.task = q.text; S.draft.qid = q.id; save(); openDrawer(''); render();
+  if (go) start(q.text); else { $('#task-in').value = q.text; $('#task-in').focus(); }
+}
+$('#dump-form').addEventListener('submit', e => { e.preventDefault(); const i = $('#dump-in'); addDump(i.value); i.value = ''; i.focus(); });
+$('#dump-in').addEventListener('paste', e => { const t = (e.clipboardData || window.clipboardData)?.getData('text') || ''; if (/\n/.test(t.trim())){ e.preventDefault(); addDump(t); } });
+$('#dump-list').addEventListener('click', e => {
+  const t = e.target, g = a => t.closest(`[data-${a}]`)?.dataset[a];
+  if (g('up')) moveDump(g('up'), S.queue.findIndex(q => q.id === g('up')) - 1);
+  else if (g('down')) moveDump(g('down'), S.queue.findIndex(q => q.id === g('down')) + 1);
+  else if (g('del')){ S.queue = S.queue.filter(q => q.id !== g('del')); save(); renderDump(); if (!S.run && !S.result) renderSetup(); }
+  else if (g('go')) useDump(g('go'), true);
+});
+let dragId = null;
+$('#dump-list').addEventListener('dragstart', e => { const r = e.target.closest('.dump-item'); if (!r) return; dragId = r.dataset.id; r.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', dragId); } catch (x) {} });
+$('#dump-list').addEventListener('dragover', e => { const r = e.target.closest('.dump-item'); if (!r || !dragId) return; e.preventDefault(); $$('.dump-item.over').forEach(x => x.classList.remove('over')); r.classList.add('over'); });
+$('#dump-list').addEventListener('drop', e => { const r = e.target.closest('.dump-item'); if (!r || !dragId) return; e.preventDefault(); moveDump(dragId, S.queue.findIndex(q => q.id === r.dataset.id)); dragId = null; });
+$('#dump-list').addEventListener('dragend', () => { dragId = null; $$('.dump-item').forEach(x => x.classList.remove('drag', 'over')); });
+$('#t-dump').addEventListener('click', () => openDrawer('d-dump'));
+document.addEventListener('click', e => { if (e.target.closest('#use-next')) useDump(S.queue[0]?.id, false); });
+
 /* hot edge: hover (or swipe from the left edge) peeks the log; it closes when the pointer leaves */
 let peek = false, peekT = null;
 const logEl = $('#d-log');
@@ -814,6 +893,7 @@ $('#s-toast').addEventListener('change', e => { S.settings.toasts = e.target.che
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') openDrawer('');
   if (/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'n' || e.key === 'N'){ e.preventDefault(); openDrawer('d-dump'); return; }
   const r = S.run;
   if (e.code === 'Space' && r?.kind === 'task'){ e.preventDefault(); togglePause(); }
   if ((e.key === 'd' || e.key === 'D') && r?.kind === 'task') finish('done');
@@ -842,6 +922,7 @@ $('#ver-go').addEventListener('click', async () => {
 $('#ver-line').textContent = `Redline v${VERSION}`;
 
 applyGrey();
+renderDump();
 render();
 if (!S.run && !S.result) setTimeout(() => $('#task-in').focus(), 50);
 })();

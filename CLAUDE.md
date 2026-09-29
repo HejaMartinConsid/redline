@@ -15,7 +15,8 @@ A race-style focus timer for one task at a time. It's for ADHD-friendly focus: y
 - "Just log it" adds a finished entry (status `logged`) without starting a race.
 - Breaks: countdown + move-around prompt, also run into minus time.
 - Scenes: river (ducks), circuit (cars), space (rockets), calm (low stimulation, slow motion).
-- Keyboard: Space pause, D done, + add 5 min.
+- Keyboard: Space pause, D done, + add 5 min, N brain dump.
+- Brain dump (`S.queue`): a parked list for later tasks. Start buttons are hidden while a task runs, on purpose, so you do not jump tasks mid-race.
 - Respect `prefers-reduced-motion`.
 
 ## When editing
