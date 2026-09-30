@@ -191,6 +191,10 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 .mini:hover{background:#e3e7f0}
 .mini:disabled{opacity:.3;cursor:default}
 .mini.go{width:auto;padding:0 12px;background:var(--accent);color:var(--accent-ink)}
+.eform{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;padding:6px 0}
+.eform .edit-row{grid-template-columns:minmax(0,1fr) 104px}
+.eform .row{gap:8px}
+.eform .cbtn{height:40px;font-size:15px}
 .edit-row{display:grid;grid-template-columns:minmax(0,1fr) 116px;gap:10px}
 .edit-row label{display:flex;flex-direction:column;gap:4px;font:800 11px var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:var(--card-soft)}
 .edit-in{width:100%;height:46px;padding:0 12px;border-radius:12px;border:2px solid var(--card-line);background:#f6f7fb;color:var(--card-ink);font:700 18px var(--font-body);text-transform:none;letter-spacing:0}
@@ -376,7 +380,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
     </div>
     <div class="set">
       <span class="eyebrow">Version</span>
-      <p class="hint" id="ver-line">Redline v1.4.0</p>
+      <p class="hint" id="ver-line">Redline v1.5.0</p>
       <div class="row"><button class="cbtn" id="ver-check">Check for update</button><button class="cbtn cbtn-go" id="ver-go" hidden>Update now</button></div>
     </div>
     <p class="hint">Saved in this browser only.</p>
@@ -388,7 +392,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 <script>
 (() => {
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-const VERSION = '1.4.0';
+const VERSION = '1.5.0';
 const KEY = 'redline.v2', MIN = 60000, LAP = 25 * MIN;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -808,14 +812,15 @@ let swipeX = null;
 logEl.addEventListener('touchend', e => { if (swipeX != null && swipeX - e.changedTouches[0].clientX > 60) openDrawer(''); swipeX = null; }, { passive:true });
 $$('[data-close]').forEach(b => b.addEventListener('click', () => openDrawer('')));
 
-let logView = 'days', logDay = null, confirmDay = false;
+let logView = 'days', logDay = null, confirmDay = false, editId = null;
 const dayTitle = k => { const t = dayKey(now()); return k === t ? 'Today' : k === dayKey(now() - 864e5) ? 'Yesterday' : new Date(k + 'T12:00').toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'short' }); };
 const tiles = arr => { $('#tiles').innerHTML = arr.map(([k, v]) => `<div class="tile"><small>${k}</small><b>${v}</b></div>`).join(''); };
 function entryHtml(l, showDay){
+  if (l.id === editId) return `<div class="entry"><form class="eform" data-eform="${l.id}" autocomplete="off"><div class="edit-row"><label>Task<input class="edit-in" name="task" maxlength="120" value="${esc(l.task)}"></label><label>Time<input class="edit-in num" name="time" inputmode="numeric" value="${fmt(l.actualMs)}"></label></div><div class="row"><button class="cbtn cbtn-go" type="submit" style="height:40px;font-size:16px;padding:0 18px">Save</button><button class="cbtn" type="button" data-cancel>Cancel</button><button class="cbtn cbtn-link" type="button" data-delone="${l.id}" style="color:var(--bad)">Delete entry</button></div></form></div>`;
   const over = l.type === 'task' && l.plannedMs && l.actualMs > l.plannedMs;
   const pill = l.type === 'break' ? '<span class="pill brk">break</span>' : l.status === 'stopped' ? '<span class="pill">stopped</span>' : l.status === 'logged' ? '<span class="pill">added</span>' : l.place === 1 ? '<span class="pill win">P1</span>' : l.place ? `<span class="pill">P${l.place}</span>` : '';
   const sub = l.status === 'logged' ? 'logged afterwards' : l.plannedMs ? 'planned ' + dur(l.plannedMs) : 'stopwatch';
-  const cont = l.type === 'task' && !showDay ? `<button class="lnk" data-cont="${esc(l.task)}">Continue this task</button>` : '';
+  const cont = (l.type === 'task' && !showDay ? `<button class="lnk" data-cont="${esc(l.task)}">Continue this task</button> ` : '') + `<button class="lnk" data-edit="${l.id}">Edit</button>`;
   const tm = showDay ? new Date(l.start).toLocaleDateString('en-GB', { day:'numeric', month:'short' }) : hhmm(l.start);
   return `<div class="entry"><span class="tm">${tm}</span><span class="tk">${esc(showDay ? sub : l.task)}${showDay ? '' : pill}${showDay ? '' : `<small>${sub}</small>`}${cont}</span><span class="d ${over ? 'over' : ''}">${fmt(l.actualMs)}</span></div>`;
 }
@@ -853,6 +858,13 @@ $('#log-list').addEventListener('click', e => {
   const t = e.target;
   const day = t.closest('[data-day]'), cont = t.closest('[data-cont]');
   if (day && day.dataset.day){ logDay = day.dataset.day; confirmDay = false; renderLog(); }
+  else if (t.closest('[data-edit]')){ editId = t.closest('[data-edit]').dataset.edit; confirmDay = false; renderLog(); $('#log-list input[name=task]')?.focus(); }
+  else if (t.closest('[data-cancel]')){ editId = null; renderLog(); }
+  else if (t.closest('[data-delone]')){
+    const id = t.closest('[data-delone]').dataset.delone; S.log = S.log.filter(l => l.id !== id); editId = null;
+    if (S.result?.id === id) S.result = null;
+    save(); renderLog(); render(); toast('Entry removed.');
+  }
   else if (cont){
     if (S.run){ toast('Finish what you are on first.'); return; }
     S.result = null; S.draft.task = cont.dataset.cont; save(); openDrawer(''); render();
@@ -866,6 +878,18 @@ $('#log-list').addEventListener('click', e => {
     renderLog(); render(); toast(`Cleared ${n - S.log.length} from ${dayTitle(logDay).toLowerCase()}.`);
   }
 });
+$('#log-list').addEventListener('submit', e => {
+  const f = e.target.closest('[data-eform]'); if (!f) return; e.preventDefault();
+  const l = S.log.find(x => x.id === f.dataset.eform); if (!l) return;
+  const task = f.task.value.trim(), ms = parseTime(f.time.value);
+  f.time.classList.toggle('bad', ms == null || ms < 1000);
+  if (!task){ f.task.focus(); return; }
+  if (ms == null || ms < 1000){ f.time.focus(); toast('Time like 25:00, 1:05:00 or minutes.'); return; }
+  l.task = task.slice(0, 120); l.actualMs = ms;
+  if (S.result?.id === l.id){ S.result.task = l.task; S.result.actualMs = ms; }
+  editId = null; save(); renderLog(); render();
+});
+$('#log-list').addEventListener('keydown', e => { if (e.key === 'Escape' && editId){ e.stopPropagation(); editId = null; renderLog(); } });
 $('#l-csv').addEventListener('click', () => {
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const rows = [['date', 'start', 'type', 'task', 'planned_min', 'actual_min', 'result']];
