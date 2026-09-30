@@ -294,7 +294,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
         <h2>What are you doing?</h2>
       </div>
       <div class="combo">
-        <input class="task-in" id="task-in" type="text" maxlength="120" autocomplete="off" autocapitalize="sentences" spellcheck="false" data-lpignore="true" data-1p-ignore role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="combo" placeholder="e.g. Reply to the client email" aria-label="Task">
+        <input class="task-in" id="task-in" type="text" maxlength="120" autocomplete="off" autocapitalize="sentences" spellcheck="false" data-lpignore="true" data-1p-ignore role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="combo" placeholder="e.g. Write the project summary" aria-label="Task">
         <div class="combo-list" id="combo" role="listbox" hidden></div>
       </div>
       <div class="chips" id="dur">
@@ -397,7 +397,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
     </div>
     <div class="set">
       <span class="eyebrow">Version</span>
-      <p class="hint" id="ver-line">Redline v1.7.0</p>
+      <p class="hint" id="ver-line">Redline v1.7.1</p>
       <div class="row"><button class="cbtn" id="ver-check">Check for update</button><button class="cbtn cbtn-go" id="ver-go" hidden>Update now</button></div>
     </div>
     <p class="hint">Saved in this browser only.</p>
@@ -409,7 +409,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 <script>
 (() => {
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-const VERSION = '1.7.0';
+const VERSION = '1.7.1';
 const KEY = 'redline.v2', MIN = 60000, LAP = 25 * MIN;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
