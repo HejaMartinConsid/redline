@@ -1,5 +1,5 @@
 // Offline cache for Redline. Bump the version when you change index.html.
-const VERSION = '1.7.1'; // keep in step with VERSION in index.html
+const VERSION = '1.8.0'; // keep in step with VERSION in index.html
 const CACHE = 'redline-' + VERSION;
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });

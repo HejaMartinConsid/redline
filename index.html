@@ -130,7 +130,10 @@ button{cursor:pointer}
 @keyframes flick{to{transform:scaleX(.7)}}
 
 /* overlay cards */
-.stage{position:absolute;inset:0;display:grid;place-items:center;padding:16px;padding-top:180px;z-index:4;pointer-events:none}
+.stage{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding:16px;padding-top:180px;z-index:4;pointer-events:none}
+/* golden ratio: 38.2% of the free space above the card, 61.8% below */
+.stage::before,.stage::after{content:"";min-height:0}
+.stage::before{flex:38.2 1 0}.stage::after{flex:61.8 1 0}
 .card{pointer-events:auto;background:var(--card);color:var(--card-ink);border-radius:22px;padding:clamp(20px,3vw,32px);width:min(620px,100%);box-shadow:0 18px 60px rgba(0,0,0,.35),0 6px 0 rgba(0,0,0,.15);display:flex;flex-direction:column;gap:18px}
 .card h2{font:600 clamp(24px,2.6vw,32px)/1.15 var(--font-display);margin:0;text-wrap:balance}
 .eyebrow{font:800 12px var(--font-body);letter-spacing:.18em;text-transform:uppercase;color:var(--card-soft)}
@@ -185,6 +188,17 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 .dump-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--card-line);background:var(--card)}
 .dump-item.drag{opacity:.4}
 .dump-item.over{box-shadow:0 -2px 0 var(--accent)}
+.dump-item{border-left:4px solid transparent;padding-left:10px}
+.dump-item.must{border-left-color:var(--bad)}
+.dump-item.nice{border-left-color:var(--calm)}
+.ptag{display:inline-block;border:0;border-radius:99px;padding:2px 9px;font:800 11px var(--font-body);letter-spacing:.06em;text-transform:uppercase;vertical-align:1px}
+.ptag.must{background:var(--bad);color:#fff}
+.ptag.nice{background:#d8f1ec;color:#1d5e57}
+.ptag.none{background:none;color:var(--card-soft);text-decoration:underline;opacity:.55;padding:2px 0}
+.dump-item:hover .ptag.none,.dump-item:focus-within .ptag.none{opacity:1}
+.dump-item .meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin-top:3px}
+.dump-item .meta .note{margin:0}
+.combo-o .ptag{margin-left:6px;font-size:10px;padding:1px 7px}
 .dump-item.paused .tt{opacity:.55}
 .dump-item .tt{min-width:0}
 .dump-item .note{display:block;margin:2px 0 0;padding:0;font:500 13px var(--font-body);color:var(--card-soft);text-decoration:none;text-align:left;overflow-wrap:anywhere}
@@ -397,7 +411,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
     </div>
     <div class="set">
       <span class="eyebrow">Version</span>
-      <p class="hint" id="ver-line">Redline v1.7.1</p>
+      <p class="hint" id="ver-line">Redline v1.8.0</p>
       <div class="row"><button class="cbtn" id="ver-check">Check for update</button><button class="cbtn cbtn-go" id="ver-go" hidden>Update now</button></div>
     </div>
     <p class="hint">Saved in this browser only.</p>
@@ -409,7 +423,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 <script>
 (() => {
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-const VERSION = '1.7.1';
+const VERSION = '1.8.0';
 const KEY = 'redline.v2', MIN = 60000, LAP = 25 * MIN;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -593,7 +607,7 @@ function renderSetup(){
   $('#dur-hint').textContent = m ? `Counts down from ${m} min, then keeps counting in red. Hit Done before your rivals cross the line.` : 'Counts up with no finish line. Rivals do laps around you.';
   const nx = S.queue.find(q => !q.paused), nh = $('#next-hint');
   nh.hidden = !nx || !!S.draft.qid;
-  if (nx) nh.innerHTML = `Up next from your dump: <b>${esc(nx.text)}</b> <button type="button" class="lnk" id="use-next">Use</button>`;
+  if (nx) nh.innerHTML = `Up next from your dump: <b>${esc(nx.text)}</b>${priPill(nx.pri)} <button type="button" class="lnk" id="use-next">Use</button>`;
   $('#log-it-hint').textContent = m ? `logs ${m} min, ending now` : 'pick minutes to log';
   $('#clock').textContent = m ? fmt(m * MIN) : '00:00';
   $('#clock-cap').textContent = 'Ready';
@@ -744,7 +758,7 @@ function renderCombo(open){
   const items = comboItems(), el = $('#combo'), inp = $('#task-in');
   if (!open || !items.length){ el.hidden = true; comboI = -1; inp.setAttribute('aria-expanded', 'false'); return; }
   comboI = Math.min(comboI, items.length - 1);
-  el.innerHTML = '<div class="combo-h">From your brain dump</div>' + items.map((q, i) => `<button type="button" role="option" class="combo-o${i === comboI ? ' on' : ''}" data-pick="${q.id}"><span>${esc(q.text)}</span>${q.note ? `<small>${esc(q.note)}</small>` : ''}</button>`).join('');
+  el.innerHTML = '<div class="combo-h">From your brain dump</div>' + items.map((q, i) => `<button type="button" role="option" class="combo-o${i === comboI ? ' on' : ''}" data-pick="${q.id}"><span>${esc(q.text)}${priPill(q.pri)}</span>${q.note ? `<small>${esc(q.note)}</small>` : ''}</button>`).join('');
   el.hidden = false; inp.setAttribute('aria-expanded', 'true');
 }
 function pickCombo(id){ const q = S.queue.find(x => x.id === id); if (!q) return; S.draft.task = q.text; S.draft.qid = q.id; save(); $('#task-in').value = q.text; renderCombo(false); $('#task-in').focus(); }
@@ -806,11 +820,13 @@ function renderDump(){
   $('#dump-list').innerHTML = S.queue.map((q, i) => {
     const edit = noteId === q.id;
     const note = edit ? `<input class="note-in" autocomplete="off" data-notein="${q.id}" maxlength="80" value="${esc(q.note || '')}" placeholder="e.g. waiting for Anna's reply" aria-label="Note">` : q.note ? `<button class="lnk note" data-note="${q.id}">${esc(q.note)}</button>` : `<button class="lnk note note-add" data-note="${q.id}">+ note</button>`;
-    return `<div class="dump-item${q.paused ? ' paused' : ''}" ${edit ? '' : 'draggable="true"'} data-id="${q.id}"><div class="tt"><span class="t">${esc(q.text)}${q.paused ? '<span class="pill">PAUSED</span>' : ''}</span>${note}</div><span class="acts"><button class="mini" data-pause="${q.id}" aria-pressed="${!!q.paused}" title="${q.paused ? 'Waiting: click to allow starting' : 'Mark as waiting, cannot start yet'}" aria-label="Pause">⏸</button><button class="mini" data-up="${q.id}" ${i ? '' : 'disabled'} aria-label="Move up">↑</button><button class="mini" data-down="${q.id}" ${i < n - 1 ? '' : 'disabled'} aria-label="Move down">↓</button><button class="mini" data-del="${q.id}" aria-label="Remove">✕</button>${busy || q.paused ? '' : `<button class="mini go" data-go="${q.id}">Start${min ? ' · ' + min + 'm' : ''}</button>`}</span></div>`;
+    return `<div class="dump-item${q.paused ? ' paused' : ''}${q.pri ? ' ' + q.pri : ''}" ${edit ? '' : 'draggable="true"'} data-id="${q.id}"><div class="tt"><span class="t">${esc(q.text)}${q.paused ? '<span class="pill">PAUSED</span>' : ''}</span><div class="meta"><button class="ptag ${q.pri || 'none'}" data-pri="${q.id}" title="Click to change: must do, nice to do, none">${PRI[q.pri] || '+ tag'}</button>${note}</div></div><span class="acts"><button class="mini" data-pause="${q.id}" aria-pressed="${!!q.paused}" title="${q.paused ? 'Waiting: click to allow starting' : 'Mark as waiting, cannot start yet'}" aria-label="Pause">⏸</button><button class="mini" data-up="${q.id}" ${i ? '' : 'disabled'} aria-label="Move up">↑</button><button class="mini" data-down="${q.id}" ${i < n - 1 ? '' : 'disabled'} aria-label="Move down">↓</button><button class="mini" data-del="${q.id}" aria-label="Remove">✕</button>${busy || q.paused ? '' : `<button class="mini go" data-go="${q.id}">Start${min ? ' · ' + min + 'm' : ''}</button>`}</span></div>`;
   }).join('');
   if (noteId) $('#dump-list [data-notein]')?.focus();
 }
 let noteId = null;
+const PRI = { must:'Must do', nice:'Nice to do' };
+const priPill = p => p ? `<span class="ptag ${p}">${PRI[p]}</span>` : '';
 function addDump(text){
   const lines = String(text).split(/\n+/).map(x => x.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, '').trim()).filter(Boolean);
   lines.forEach(t => S.queue.push({ id:uid(), text:t.slice(0, 120) }));
@@ -835,6 +851,7 @@ $('#dump-list').addEventListener('click', e => {
   else if (g('down')) moveDump(g('down'), S.queue.findIndex(q => q.id === g('down')) + 1);
   else if (g('del')){ S.queue = S.queue.filter(q => q.id !== g('del')); save(); renderDump(); if (!S.run && !S.result) renderSetup(); }
   else if (g('pause')){ const q = S.queue.find(x => x.id === g('pause')); if (q){ q.paused = !q.paused; save(); renderDump(); if (!S.run && !S.result) renderSetup(); } }
+  else if (g('pri')){ const q = S.queue.find(x => x.id === g('pri')); if (q){ q.pri = { '':'must', undefined:'must', must:'nice', nice:'' }[q.pri || ''] || undefined; save(); renderDump(); if (!S.run && !S.result) renderSetup(); } }
   else if (g('note')){ noteId = g('note'); renderDump(); }
   else if (g('go')) useDump(g('go'), true);
 });
