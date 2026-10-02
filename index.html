@@ -220,6 +220,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 .eform .row{gap:8px}
 .eform .cbtn{height:40px;font-size:15px}
 .chip.sm{height:32px;padding:0 12px;font-size:13px}
+.chip.ok{background:var(--accent);border-color:transparent;color:var(--accent-ink)}
 .parked{display:flex;flex-direction:column;gap:8px;background:#f4f6fa;border-radius:12px;padding:10px 12px}
 .parked-t{font-size:14px;color:var(--card-soft);overflow-wrap:anywhere}
 .parked-t b{color:var(--card-ink)}
@@ -420,7 +421,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
     </div>
     <div class="set">
       <span class="eyebrow">Version</span>
-      <p class="hint" id="ver-line">Redline v1.9.0</p>
+      <p class="hint" id="ver-line">Redline v1.9.1</p>
       <div class="row"><button class="cbtn" id="ver-check">Check for update</button><button class="cbtn cbtn-go" id="ver-go" hidden>Update now</button></div>
     </div>
     <p class="hint">Saved in this browser only.</p>
@@ -432,7 +433,7 @@ html.grey{filter:grayscale(1) brightness(.88) contrast(.94)}
 <script>
 (() => {
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
-const VERSION = '1.9.0';
+const VERSION = '1.9.1';
 const KEY = 'redline.v2', MIN = 60000, LAP = 25 * MIN;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -854,7 +855,7 @@ function parkDraft(){
 }
 function renderParked(){
   const q = S.queue.find(x => x.id === parkedId), el = $('#parked'); el.hidden = !q; if (!q) return;
-  el.innerHTML = `<span class="parked-t">Added to dump: <b>${esc(q.text)}</b> · ${q.min ? q.min + ' min' : 'stopwatch'}</span><span class="chips"><button type="button" class="chip sm" data-ptag="must" aria-pressed="${q.pri === 'must'}">Must do</button><button type="button" class="chip sm" data-ptag="nice" aria-pressed="${q.pri === 'nice'}">Nice to do</button><button type="button" class="chip sm" data-ppause aria-pressed="${!!q.paused}">Waiting</button><button type="button" class="chip sm" data-pdone>Done</button></span>`;
+  el.innerHTML = `<span class="parked-t">Added to dump: <b>${esc(q.text)}</b> · ${q.min ? q.min + ' min' : 'stopwatch'}</span><span class="chips"><button type="button" class="chip sm" data-ptag="must" aria-pressed="${q.pri === 'must'}">Must do</button><button type="button" class="chip sm" data-ptag="nice" aria-pressed="${q.pri === 'nice'}">Nice to do</button><button type="button" class="chip sm" data-ppause aria-pressed="${!!q.paused}">Waiting</button><button type="button" class="chip sm ok" data-pdone>OK</button></span>`;
 }
 $('#parked').addEventListener('click', e => {
   const q = S.queue.find(x => x.id === parkedId); if (!q) return;
